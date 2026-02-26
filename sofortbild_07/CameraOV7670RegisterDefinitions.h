@@ -1,5 +1,9 @@
-#ifndef _CAMERA_REGISTERS_HPP_
-#define _CAMERA_REGISTERS_HPP_ 1
+//
+// Created by indrek on 17.04.2016.
+//
+
+#ifndef _OV7670REGISERDEFINITIONS_H
+#define _OV7670REGISERDEFINITIONS_H
 
 #include <cstdint>
 
@@ -7,6 +11,7 @@ struct RegisterData {
   uint8_t addr;
   uint8_t val;
 };
+
 
 /*
  * https://github.com/ComputerNerd/ov7670-no-ram-arduino-uno/blob/master/ov7670.h
@@ -174,36 +179,4 @@ struct RegisterData {
 #define AWBCTR0		0x6f	/* AWB Control 0 */
 
 
-class CameraRegisters {
-
-private:
-    uint8_t i2cAddress;
-
-public:
-    static const RegisterData regsDefault[];
-    static const RegisterData regsYUV422[];
-    static const RegisterData regsQQVGA[];
-    static const RegisterData regsQVGA[];
-
-    static const uint8_t QQVGA_VERTICAL_PADDING;
-    static const uint8_t QVGA_VERTICAL_PADDING;
-
-    CameraRegisters (const uint8_t i2cAddress);
-
-    void init ();
-
-    bool resetSettings ();
-    void setRegisters (const RegisterData *registerData);
-    bool setRegister (uint8_t addr, uint8_t val);
-    uint8_t readRegister (uint8_t addr);
-    
-    void setRegisterBitsOR (uint8_t addr, uint8_t bits);
-    void setRegisterBitsAND (uint8_t addr, uint8_t bits);
-
-    void setDisablePixelClockDuringBlankLines ();
-    void setDisableHREFDuringBlankLines ();
-    void setInternalClockPreScaler (int preScaler);
-    void setPLLMultiplier (uint8_t multiplier);
-};
-
-#endif //_CAMERA_REGISTERS_HPP_
+#endif //_OV7670REGISERDEFINITIONS_H

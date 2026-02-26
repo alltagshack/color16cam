@@ -1,136 +1,140 @@
+//
+// Created by indrek on 30.10.2016.
+//
+
 #include <cstdint>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/i2c.h"
+#include "CameraOV7670Registers.h"
+#include <Wire.h>
 
-#include "CameraRegisters.hpp"
 
-#define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_SDA_IO 8
-#define I2C_MASTER_SCL_IO 9
-#define I2C_MASTER_FREQ_HZ 100000
-#define I2C_MASTER_TX_BUF_DISABLE 0
-#define I2C_MASTER_RX_BUF_DISABLE 0
-static const TickType_t I2C_TIMEOUT = pdMS_TO_TICKS(1000);
 
-CameraRegisters::CameraRegisters (const uint8_t i2cAddress) : i2cAddress(i2cAddress) {}
 
-void CameraRegisters::init ()
-{
-    i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = I2C_MASTER_SDA_IO;
-    conf.scl_io_num = I2C_MASTER_SCL_IO;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    
-    i2c_param_config(I2C_MASTER_NUM, &conf);
-    i2c_driver_install(
-        I2C_MASTER_NUM, conf.mode,
-        I2C_MASTER_RX_BUF_DISABLE,
-        I2C_MASTER_TX_BUF_DISABLE,
-        0
-    );
+
+CameraOV7670Registers::CameraOV7670Registers(const uint8_t i2cAddress) : i2cAddress(i2cAddress) {
 }
 
-bool CameraRegisters::resetSettings()
-{
+
+
+void CameraOV7670Registers::init() {
+  Wire.begin();
+}
+
+
+
+bool CameraOV7670Registers::resetSettings() {
   bool isSuccessful = setRegister(REG_COM7, COM7_RESET);
-  vTaskDelay(pdMS_TO_TICKS(500));
+  delay(500);
   return isSuccessful;
 }
 
-void CameraRegisters::setRegisters (const RegisterData *programMemPointer)
-{
-    while (true) {
-        RegisterData regData = {
-            programMemPointer->addr,
-            programMemPointer->val
-        };
-        if (regData.addr == 0xFF) {
-            break;
-        } else {
-            setRegister(regData.addr, regData.val);
-            programMemPointer++;
-        }
+
+
+
+void CameraOV7670Registers::setRegisters(const RegisterData *programMemPointer) {
+  while (true) {
+    RegisterData regData = {
+        addr: pgm_read_byte(&(programMemPointer->addr)),
+        val: pgm_read_byte(&(programMemPointer->val))
+    };
+    if (regData.addr == 0xFF) {
+      break;
+    } else {
+      setRegister(regData.addr, regData.val);
+      programMemPointer++;
     }
+  }
 }
 
-bool CameraRegisters::setRegister (uint8_t addr, uint8_t val)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    esp_err_t ret;
 
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, addr, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
 
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT);
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK) {
-        return false;
-    }
-    return true;
+bool CameraOV7670Registers::setRegister(uint8_t addr, uint8_t val) {
+  Wire.beginTransmission(i2cAddress);
+  Wire.write(addr);
+  Wire.write(val);
+  return Wire.endTransmission() == 0;
 }
 
-uint8_t CameraRegisters::readRegister (uint8_t addr) {
-    uint8_t data = 0;
-    esp_err_t ret;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, addr, true);
-    i2c_master_start(cmd); // repeated start
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_READ, true);
-    i2c_master_read_byte(cmd, &data, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
 
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT);
-    i2c_cmd_link_delete(cmd);
+uint8_t CameraOV7670Registers::readRegister(uint8_t addr) {
+  Wire.beginTransmission(i2cAddress);
+  Wire.write(addr);
+  Wire.endTransmission();
 
-    if (ret != ESP_OK) {
-        return 0;
-    }
-    return data;
+  Wire.requestFrom(i2cAddress, (uint8_t)1);
+  return Wire.read();
 }
 
-void CameraRegisters::setRegisterBitsOR (uint8_t addr, uint8_t bits) {
+void CameraOV7670Registers::setRegisterBitsOR(uint8_t addr, uint8_t bits) {
   uint8_t val = readRegister(addr);
   setRegister(addr, val | bits);
 }
 
-void CameraRegisters::setRegisterBitsAND (uint8_t addr, uint8_t bits) {
+void CameraOV7670Registers::setRegisterBitsAND(uint8_t addr, uint8_t bits) {
   uint8_t val = readRegister(addr);
   setRegister(addr, val & bits);
 }
 
-void CameraRegisters::setDisablePixelClockDuringBlankLines () {
+
+void CameraOV7670Registers::setDisablePixelClockDuringBlankLines() {
   setRegisterBitsOR(REG_COM10, COM10_PCLK_HB);
 }
 
-void CameraRegisters::setDisableHREFDuringBlankLines () {
+void CameraOV7670Registers::setDisableHREFDuringBlankLines() {
   setRegisterBitsOR(REG_COM6, COM6_HREF_HB);
 }
 
-void CameraRegisters::setInternalClockPreScaler (int preScaler) {
+void CameraOV7670Registers::setHREFReverse() {
+  setRegisterBitsOR(REG_COM10, COM10_HREF_REV);
+}
+
+
+void CameraOV7670Registers::setInternalClockPreScaler(int preScaler) {
   setRegister(REG_CLKRC, 0x80 | preScaler); // f = input / (val + 1)
 }
 
-void CameraRegisters::setPLLMultiplier (uint8_t multiplier) {
+
+void CameraOV7670Registers::setPLLMultiplier(uint8_t multiplier) {
   uint8_t mask = 0b11000000;
   uint8_t currentValue = readRegister(DBLV);
   setRegister(DBLV, (currentValue & ~mask) | (multiplier << 6));
 }
 
+
+void CameraOV7670Registers::setManualContrastCenter(uint8_t contrastCenter) {
+  setRegisterBitsAND(MTXS, 0x7F); // disable auto contrast
+  setRegister(REG_CONTRAST_CENTER, contrastCenter);
+}
+
+
+void CameraOV7670Registers::setContrast(uint8_t contrast) {
+  // default 0x40
+  setRegister(REG_CONTRAS, contrast);
+}
+
+
+void CameraOV7670Registers::setBrightness(uint8_t birghtness) {
+  setRegister(REG_BRIGHT, birghtness);
+}
+
+
+void CameraOV7670Registers::reversePixelBits() {
+  setRegisterBitsOR(REG_COM3, COM3_SWAP);
+}
+
+
+void CameraOV7670Registers::setShowColorBar(bool transparent) {
+  if (transparent) {
+    setRegisterBitsOR(REG_COM7, COM7_COLOR_BAR);
+  } else {
+    setRegisterBitsOR(REG_COM17, COM17_CBAR);
+  }
+}
+
 /*
  * https://github.com/ComputerNerd/ov7670-no-ram-arduino-uno/blob/master/ov7670.c
  */
-const RegisterData CameraRegisters::regsYUV422 [] = {
+const PROGMEM RegisterData CameraOV7670Registers::regsYUV422 [] = {
     {REG_COM7, 0x0},  /* Selects YUV mode */
     {REG_RGB444, 0},  /* No RGB444 please */
     {REG_COM1, 0},
@@ -150,7 +154,7 @@ const RegisterData CameraRegisters::regsYUV422 [] = {
  * https://github.com/ComputerNerd/ov7670-no-ram-arduino-uno/blob/master/ov7670.c
  */
 
-const RegisterData CameraRegisters::regsDefault [] = { //from the linux driver
+const PROGMEM RegisterData CameraOV7670Registers::regsDefault [] = { //from the linux driver
                          {REG_COM7, COM7_RESET},
                          {REG_TSLB,  0x04},	/* OV */
                          {REG_COM7, 0},	    /* VGA */
@@ -260,16 +264,19 @@ const RegisterData CameraRegisters::regsDefault [] = { //from the linux driver
                          {0xff, 0xff},	/* END MARKER */
 };
 
-const uint8_t CameraRegisters::QQVGA_VERTICAL_PADDING = 2;
+// First few lines are garbage.
+// For some reason increasing vstart will not remove the first line, and causes synchronization problems.
+// It is easier read all lines from the beginning and ignore the garbage lines in the code.
+const uint8_t CameraOV7670Registers::QQVGA_VERTICAL_PADDING = 2;
 const uint16_t v1start = 0;
-const uint16_t v1stop = 120 + CameraRegisters::QQVGA_VERTICAL_PADDING;
+const uint16_t v1stop = 120 + CameraOV7670Registers::QQVGA_VERTICAL_PADDING;
 
 // 120 + 2 pixel (4 bytes) for padding.
 // One from the beginning and three at the end.
 const uint16_t h1start = 182;
 const uint16_t h1stop = 46;
 
-const RegisterData CameraRegisters::regsQQVGA [] = {
+const PROGMEM RegisterData CameraOV7670Registers::regsQQVGA [] = {
     {REG_VSTART,v1start},
     {REG_VSTOP,v1stop},
     {REG_VREF,0},
@@ -290,16 +297,16 @@ const RegisterData CameraRegisters::regsQQVGA [] = {
 // First few lines are garbage.
 // For some reason increasing vstart will not remove the first line, and causes synchronization problems.
 // It is easier read all lines from the beginning and ignore the garbage lines in the code.
-const uint8_t CameraRegisters::QVGA_VERTICAL_PADDING = 5;
+const uint8_t CameraOV7670Registers::QVGA_VERTICAL_PADDING = 5;
 const uint16_t v2start = 0;
-const uint16_t v2stop = 240 + CameraRegisters::QVGA_VERTICAL_PADDING;
+const uint16_t v2stop = 240 + CameraOV7670Registers::QVGA_VERTICAL_PADDING;
 
 // 240 + 2 pixel (4 bytes) for padding.
 // One from the beginning and three at the end.
 const uint16_t h2start = 174;
 const uint16_t h2stop = 34;
 
-const RegisterData CameraRegisters::regsQVGA [] = {
+const PROGMEM RegisterData CameraOV7670Registers::regsQVGA [] = {
     {REG_VSTART,v2start >> 1},
     {REG_VSTOP,v2stop >> 1},
     {REG_VREF,((v2start & 0b1) << 1) | ((v2stop & 0b1) << 3)},
