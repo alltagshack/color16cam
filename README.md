@@ -2,6 +2,8 @@
 
 ESP32-c3, OV7670 and a ESC/POS receipt printer as instant camera.
 
+**THIS IS THE ARDUINO-IDE Branch!** I am migrate the code to platform.IO on main.
+
 ## IMPORTANT
 
 N E V E R   connect >5V to the ESP32-C3 SuperMini Board!
