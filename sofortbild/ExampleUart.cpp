@@ -162,8 +162,6 @@ void printRaster (uint8_t *img, uint16_t width, int height)
 
 // this is called in Arduino loop() function
 void processFrame() {
-  processFrameData();
-
   ditherAtkinson(orginal, lineLength, lineCount);
   printRaster(orginal, lineLength, lineCount);
 }

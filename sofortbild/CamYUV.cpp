@@ -46,7 +46,7 @@ bool CamYUV::setUpCamera() {
 
 
 bool CamYUV::setRegister(uint8_t addr, uint8_t val) {
-  registers.setRegister(addr, val);
+  return registers.setRegister(addr, val);
 }
 
 uint8_t CamYUV::readRegister(uint8_t addr) {

@@ -27,6 +27,7 @@ ONLY the Printer needs 7.5 V! Cam and ESP32-C3 runns on 3.3V!
 - SIOD -> GPIO 8
 - SIOC -> GPIO 9
 - picture button: GND + GPIO 7
+- picture button2: GND + GPIO 10 (UNUSED)
 - Use an AMS1117 3.3V voltage regulator to power the ESP32-C3 SuperMini
   Board via the 3.3V pin!!! Do not connect 7.5V to the 5V Pin!
 
