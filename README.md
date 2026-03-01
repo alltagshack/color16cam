@@ -9,7 +9,6 @@ ESP32-c3, OV7670 and a ESC/POS receipt printer as instant camera.
 N E V E R   connect >5V to the ESP32-C3 SuperMini Board!
 
 ![Usage](working.jpg)
-![Atkinson Dithering](dithering.png)
 ![Arduino IDE 1.8.19](IDE-1.8.19.png)
 
 ## wiring
@@ -27,7 +26,7 @@ ONLY the Printer needs 7.5 V! Cam and ESP32-C3 runns on 3.3V!
 - SIOD -> GPIO 8
 - SIOC -> GPIO 9
 - picture button: GND + GPIO 7
-- picture button2: GND + GPIO 10 (UNUSED)
+- picture button2: GND + GPIO 10 (fast, low resolution print)
 - Use an AMS1117 3.3V voltage regulator to power the ESP32-C3 SuperMini
   Board via the 3.3V pin!!! Do not connect 7.5V to the 5V Pin!
 

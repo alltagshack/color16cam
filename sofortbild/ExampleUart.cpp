@@ -8,12 +8,25 @@ void processFrame();
 
 uint8_t gray;
 
-const uint16_t lineLength = 320;
-const uint16_t lineCount = 240;
+const uint16_t width  = 320;
+const uint16_t height = 240;
 CamYUV camera(CamYUV::RESOLUTION_QQVGA_160x120, 2);
 
-uint8_t orginal    [lineLength * lineCount];
+uint8_t img[width * height];
 
+
+static const uint8_t bayer[4][4] = {
+    { 0,  8,  2, 10},
+    {12,  4, 14,  6},
+    { 3, 11,  1,  9},
+    {15,  7, 13,  5}
+};
+
+uint8_t bayerThreshold (uint16_t x, uint16_t y)
+{
+    // (value + 0.5) * 255 / 16  →  round‑to‑nearest
+    return (bayer[y & 3][x & 3] * 255 + 127) / 16;
+}
 
 // this is called in Arduino setup() function
 void initializeScreenAndCamera() {
@@ -42,28 +55,28 @@ void processFrameData() {
 
   camera.ignoreVerticalPadding();
 
-  for (uint16_t y = 0; y < lineCount/2; y++) {
+  for (uint16_t y = 0; y < height/2; y++) {
     camera.ignoreHorizontalPaddingLeft();
 
     uint16_t x = 0;
-    while ( x < lineLength/2)
+    while ( x < width/2)
     {
       camera.waitForPixelClockRisingEdge(); // YUV422 grayscale byte   
       camera.readPixelByte(gray);
-      orginal[2*y*lineLength + 2*x] = formatPixelByteGrayscaleFirst(gray);
-      orginal[2*y*lineLength + 2*x+1]     = orginal[2*y*lineLength + 2*x];
-      orginal[(2*y+1)*lineLength + 2*x+1] = orginal[2*y*lineLength + 2*x];
-      orginal[(2*y+1)*lineLength + 2*x]   = orginal[2*y*lineLength + 2*x];
+      img[2*y*width + 2*x] = formatPixelByteGrayscaleFirst(gray);
+      img[2*y*width + 2*x+1]     = img[2*y*width + 2*x];
+      img[(2*y+1)*width + 2*x+1] = img[2*y*width + 2*x];
+      img[(2*y+1)*width + 2*x]   = img[2*y*width + 2*x];
 
       camera.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
       x++;
 
       camera.waitForPixelClockRisingEdge(); // YUV422 grayscale byte
       camera.readPixelByte(gray);
-      orginal[2*y*lineLength + 2*x] = formatPixelByteGrayscaleSecond(gray);
-      orginal[2*y*lineLength + 2*x+1]     = orginal[2*y*lineLength + 2*x];
-      orginal[(2*y+1)*lineLength + 2*x+1] = orginal[2*y*lineLength + 2*x];
-      orginal[(2*y+1)*lineLength + 2*x]   = orginal[2*y*lineLength + 2*x];
+      img[2*y*width + 2*x] = formatPixelByteGrayscaleSecond(gray);
+      img[2*y*width + 2*x+1]     = img[2*y*width + 2*x];
+      img[(2*y+1)*width + 2*x+1] = img[2*y*width + 2*x];
+      img[(2*y+1)*width + 2*x]   = img[2*y*width + 2*x];
 
       camera.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
       x++;
@@ -75,12 +88,12 @@ void processFrameData() {
 
 }
 
-void ditherAtkinson (uint8_t *img, int w, int h)
+void ditherAtkinson ()
 {
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
 
-            int i = y * w + x;
+            int i = y * width + x;
             uint8_t old = img[i];
             uint8_t neu = (old < 128) ? 0 : 255;
             img[i] = neu;
@@ -94,33 +107,33 @@ void ditherAtkinson (uint8_t *img, int w, int h)
             //       1
 
             // y, x+1
-            if (x + 1 < w)
+            if (x + 1 < width)
                 img[i + 1] = (uint8_t)CLAMP(img[i + 1] + diff, 0, 255);
 
             // y, x+2
-            if (x + 2 < w)
+            if (x + 2 < width)
                 img[i + 2] = (uint8_t)CLAMP(img[i + 2] + diff, 0, 255);
 
             // y+1, x-1
-            if (y + 1 < h && x - 1 >= 0)
-                img[i + w - 1] = (uint8_t)CLAMP(img[i + w - 1] + diff, 0, 255);
+            if (y + 1 < height && x - 1 >= 0)
+                img[i + width - 1] = (uint8_t)CLAMP(img[i + width - 1] + diff, 0, 255);
 
             // y+1, x
-            if (y + 1 < h)
-                img[i + w] = (uint8_t)CLAMP(img[i + w] + diff, 0, 255);
+            if (y + 1 < height)
+                img[i + width] = (uint8_t)CLAMP(img[i + width] + diff, 0, 255);
 
             // y+1, x+1
-            if (y + 1 < h && x + 1 < w)
-                img[i + w + 1] = (uint8_t)CLAMP(img[i + w + 1] + diff, 0, 255);
+            if (y + 1 < height && x + 1 < width)
+                img[i + width + 1] = (uint8_t)CLAMP(img[i + width + 1] + diff, 0, 255);
 
             // y+2, x
-            if (y + 2 < h)
-                img[i + 2 * w] = (uint8_t)CLAMP(img[i + 2 * w] + diff, 0, 255);
+            if (y + 2 < height)
+                img[i + 2 * width] = (uint8_t)CLAMP(img[i + 2 * width] + diff, 0, 255);
         }
     }
 }
 
-void printRaster (uint8_t *img, uint16_t width, int height)
+void printRaster ()
 {
     int lines = height / 24;
     uint8_t nL = width & 0xFF;
@@ -159,9 +172,46 @@ void printRaster (uint8_t *img, uint16_t width, int height)
     }
 }
 
+void printRasterFast ()
+{
+    uint32_t cols  = width/2;
+    uint8_t nL = cols & 0xFF;
+    uint8_t nH = (cols >> 8) & 0xFF;
+    
+    for (int y = 0; y < height/3; y+=8)
+    {        
+        Serial0.write("\x1B\x2A\x00", 3);
+        Serial0.write(nL);
+        Serial0.write(nH);
+
+        for (int x = 0; x < cols; ++x)
+        {
+           uint8_t byt = 0;
+           for (int i = 0; i < 8; ++i)
+            {
+                int posY = y + i;
+                if (posY >= height/3) continue;
+                
+                uint8_t pixel = img[3*posY*width + 2*x];
+                uint8_t th = bayerThreshold(x, posY);
+                if (pixel < th) {
+                    byt |= (1 << (7 - i));
+                }
+            }
+            Serial0.write(byt);
+        }      
+
+        Serial0.write(10);
+    }
+}
+
 
 // this is called in Arduino loop() function
-void processFrame() {
-  ditherAtkinson(orginal, lineLength, lineCount);
-  printRaster(orginal, lineLength, lineCount);
+void processFrame(int modus) {
+  if (modus == 0) {
+    ditherAtkinson();
+    printRaster();
+  } else {
+    printRasterFast();
+  }
 }

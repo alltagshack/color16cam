@@ -5,7 +5,22 @@
 
 void initializeScreenAndCamera();
 void processFrameData();
-void processFrame();
+void processFrame(int modus);
+
+void printerInit() {
+  // reset
+  Serial0.write("\x1B\x40", 2);
+  // linefeed to 0
+  Serial0.write("\x1B\x33\x00", 3);
+  // Codepage 858
+  Serial0.write("\x1B\x74\x13", 3);
+  // font B
+  Serial0.write("\x1B\x4D\x01", 3);
+  // font CPI mode
+  Serial0.write("\x1B\xC1\x01", 3);
+  // rotate text 180
+  Serial0.write("\x1B\x7B\x01", 3);
+}
 
 void setup() {
   gpio_set_direction(PICTURE_BUTTON, GPIO_MODE_INPUT); 
@@ -16,28 +31,25 @@ void setup() {
 
   initializeScreenAndCamera();
 
-  Serial0.begin(9600);  
+  Serial0.begin(9600);
+  processFrameData();
 }
 
 
 void loop() {
-  processFrameData();
   if (digitalRead(PICTURE_BUTTON) == LOW) {
-    // reset
-    Serial0.write("\x1B\x40", 2);
-    // linefeed to 0
-    Serial0.write("\x1B\x33\x00", 3);
-    // Codepage 858
-    Serial0.write("\x1B\x74\x13", 3);
-    // font B
-    Serial0.write("\x1B\x4D\x01", 3);
-    // font CPI mode
-    Serial0.write("\x1B\xC1\x01", 3);
-    // rotate text 180
-    Serial0.write("\x1B\x7B\x01", 3);
-    
-    Serial0.println("                Das wird teuer f\x81r Sie.");
-    processFrame();
+    printerInit();    
+    Serial0.println("               Das wird teuer f\x81r Sie.");
+    processFrameData();
+    processFrame(0);
     Serial0.write("\n\n\n\n", 4);
   }
+  if (digitalRead(PICTURE_BUTTON2) == LOW) {
+    printerInit();    
+    Serial0.println("               Billig!");
+    processFrameData();
+    processFrame(1);
+    Serial0.write("\n\n\n\n", 4);
+  }
+  delay(100);
 }
