@@ -14,6 +14,8 @@ extern "C" {
 #define UART_TX_PIN        21    // TX0
 #define UART_RX_PIN        20    // RX0
 #define UART_BUF_SIZE      256
+#define PICTURE_BUTTON     GPIO_NUM_7
+#define PICTURE_BUTTON2    GPIO_NUM_10
 
 const uart_config_t uart_config = {
     .baud_rate = UART_BAUD_RATE,
@@ -23,7 +25,7 @@ const uart_config_t uart_config = {
     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
 };
 
-#define PICTURE_BUTTON      GPIO_NUM_7
+
 #define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 
 uint8_t gray;
@@ -199,18 +201,22 @@ void app_main (void)
     uart_driver_install(UART_PORT_NUM, UART_BUF_SIZE, UART_BUF_SIZE, 0, NULL, 0);
 
     cam.init();
+
     gpio_set_direction(PICTURE_BUTTON, GPIO_MODE_INPUT); 
     gpio_set_pull_mode(PICTURE_BUTTON, GPIO_PULLUP_ONLY);
+
+    gpio_set_direction(PICTURE_BUTTON2, GPIO_MODE_INPUT); 
+    gpio_set_pull_mode(PICTURE_BUTTON2, GPIO_PULLUP_ONLY);
 
     for (;;)
     {
         if (gpio_get_level(PICTURE_BUTTON) == 0)
         {
             initPrinter();
-            uart_write_bytes(UART_PORT_NUM, "Das wird teuer f\x81r Sie.\n", 24);
-            //getPicture();
+            uart_write_bytes(UART_PORT_NUM, "          Das wird teuer f\x81r Sie.\n", 34);
+            getPicture();
             ditherAtkinson();
-            printRaster();
+            //printRaster();
             uart_write_bytes(UART_PORT_NUM, "\n\n\n\n", 4);
         }
         vTaskDelay(pdMS_TO_TICKS(250));
