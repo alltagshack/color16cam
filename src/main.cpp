@@ -32,6 +32,7 @@
 #define Y6_GPIO_NUM         12
 #define PCLK_GPIO_NUM       13
 
+#include <FastLED.h>
 #include <Adafruit_GFX.h>
 #include "Adafruit_SSD1331.h"
 
@@ -42,6 +43,10 @@ Adafruit_SSD1331 display = Adafruit_SSD1331(PIN_CS, PIN_DC, PIN_RST);
 const uint16_t width  = 360;
 const uint16_t height = 360;
 uint8_t img[width * height];
+
+#define NUM_LEDS 1
+#define DATA_PIN 48
+CRGB leds[NUM_LEDS];
 
 void printer_init() {
   // reset
@@ -106,7 +111,13 @@ void stream_oled()
     {
         for(int x=0; x<240; ++x)
         {
-            img[x*width +y] = rgb565_to_gray(data);
+            // rotated clockwise 90 deg and mirrored
+            //img[x*width +y] = rgb565_to_gray(data);
+
+            // rotated 180 deg
+            //img[y*width +x] = rgb565_to_gray(data);
+
+            img[(239-y)*width +(239-x)] = rgb565_to_gray(data);
 
             // this shrinks it down to 96x64 pixel
             if (y%4 == 0 || y<3 || y>237) {
@@ -171,17 +182,17 @@ void dither_atkinson ()
 
 void print_raster ()
 {
-    int lines = height / 24;
+    uint16_t lines = height / 24;
     uint8_t nL = width & 0xFF;
     uint8_t nH = (width >> 8) & 0xFF;
     
-    for (int line = 0; line < lines; ++line)
+    for (uint16_t line = 0; line < lines; ++line)
     {
         Serial.write("\x1B\x2A\x21", 3);
         Serial.write(nL);
         Serial.write(nH);
 
-        for (int x = 0; x < width; x+=3)
+        for (uint16_t x = 0; x < width; x+=3)
         {
             for (int i = 0; i < 3; ++i)
             {
@@ -202,6 +213,8 @@ void print_raster ()
                     Serial.write(byt);
                 }
             }
+            leds[0] = CRGB(x/2, x/48 * line, 0);
+            FastLED.show();
         }        
         Serial.write(10);
     }
@@ -210,6 +223,7 @@ void print_raster ()
 void setup (void)
 {
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
+    FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LEDS);
 
     Serial.begin(9600);
     display.begin();
@@ -250,19 +264,30 @@ void setup (void)
     if (s->id.PID == OV3660_PID)
     {
         s->set_vflip(s, 1);
+        s->set_brightness(s, 2);
+        s->set_saturation(s, 4);
     }
 }
 
 void loop()
 {
-  stream_oled();
   if (digitalRead(PICTURE_BUTTON) == LOW) {
+    leds[0] = CRGB::White;
+    FastLED.show();
+    stream_oled();
+    leds[0] = CRGB::Black;
+    FastLED.show();
+
     printer_init();
     Serial.println("    Das wird teuer f\x81r Sie.");
     blow_up();
     dither_atkinson();
     print_raster();
+
     Serial.write("\n\n\n\n", 4);
-    delay(250);
+    leds[0] = CRGB::Black;
+    FastLED.show();
+} else {
+    stream_oled();
   }
 }
