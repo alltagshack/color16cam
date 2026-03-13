@@ -79,7 +79,26 @@ void blow_up()
     }
 }
 
-void stream_oled()
+void dither_preview()
+{
+    display.goTo(0, 0);
+    for(int y=147; y<(147+64); ++y)
+    {
+        for(int x=131; x<(131+96); ++x)
+        {
+            if (img[(height - y)*width + (width-x)] < 128) {
+                display.writeData(0x00);
+                display.writeData(0x00);
+            } else {
+                display.writeData(0xFF);
+                display.writeData(0xFF);
+            }
+        }
+    }
+
+}
+
+void stream_oled(bool colorpreview)
 {
     camera_fb_t *fb = NULL;
     fb = esp_camera_fb_get();
@@ -104,16 +123,18 @@ void stream_oled()
 
             img[(239-y)*width +(239-x)] = rgb565_to_gray(data);
 
-            // this shrinks it down to 96x64 pixel
-            if (y%4 == 0 || y==2 || y==6 || y>237) {
-                if (x%4 == 0 || x==2 || x==6 || x>237) {
-                    display.writeData(*data);
-                    display.writeData((*data)>>8);
+            if (colorpreview == true) {
+                // this shrinks it down to 96x64 pixel
+                if (y%4 == 0 || y==2 || y==6 || y>237) {
+                    if (x%4 == 0 || x==2 || x==6 || x>237) {
+                        display.writeData(*data);
+                        display.writeData((*data)>>8);
+                    }
+                    if (x == 239) {
+                        // fill 32 pixel black
+                        for (int i = 0;i< 64; ++i) display.writeData(0);
+                    } 
                 }
-                if (x == 239) {
-                    // fill 32 pixel black
-                    for (int i = 0;i< 64; ++i) display.writeData(0);
-                } 
             }
             data++;
         }
@@ -165,7 +186,7 @@ void dither_atkinson ()
 }
 
 
-void print_raster ()
+void print_img ()
 {
     uint16_t lines = height / 24;
     uint8_t nL = width & 0xFF;
@@ -208,6 +229,9 @@ void print_raster ()
         }        
         Serial.write("\x0A", 1);
     }
+    Serial.write("\n\n\n\n", 4);
+    leds[0] = CRGB::Black;
+    FastLED.show();
 }
 
 void setup (void)
@@ -261,21 +285,30 @@ void setup (void)
 
 void loop()
 {
+    int ticker = 0;
     if (digitalRead(PICTURE_BUTTON) == LOW) {
+
         leds[0] = CRGB::White;
         FastLED.show();
-        stream_oled();
-        leds[0] = CRGB::Black;
-        FastLED.show();
+        stream_oled(true);
 
         blow_up();
         dither_atkinson();
-        print_raster();
-
-        Serial.write("\n\n\n\n", 4);
         leds[0] = CRGB::Black;
         FastLED.show();
+
+        while(digitalRead(PICTURE_BUTTON) == LOW) {
+            stream_oled(false);
+            blow_up();
+            dither_atkinson();
+            dither_preview();
+            ticker++;
+            delay(100);
+        }
+
+        if (ticker < 10) print_img();
+        
     } else {
-        stream_oled();
+        stream_oled(true);
     }
 }
