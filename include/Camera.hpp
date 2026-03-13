@@ -60,7 +60,7 @@ protected:
 };
 
 void Camera::waitForVsync() {
-    while(! (_IN_REG & (1<<4)) ) ;
+    while(! (_IN_REG & (1<<20)) ) ;
 }
 
 void Camera::waitForPixelClockRisingEdge() {
@@ -90,7 +90,7 @@ void Camera::ignoreHorizontalPaddingRight() {
 }
 
 void Camera::readPixelByte(uint8_t & byt) {
-    byt = (uint8_t) ( (_IN_REG & 0x0F) << 4 );
+    byt = (uint8_t) ( (_IN_REG & 0x1F) << 3 );
 }
 
 

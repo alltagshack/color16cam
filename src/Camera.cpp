@@ -9,12 +9,13 @@
 bool Camera::init() {
     registers.init();
 
-    pinMode(0, INPUT);
-    pinMode(1, INPUT);
-    pinMode(2, INPUT);
-    pinMode(3, INPUT);
-    pinMode(4, INPUT); /* VSYNC */ 
-    pinMode(5, INPUT); /* PCLK */
+    pinMode( 0, INPUT);
+    pinMode( 1, INPUT);
+    pinMode( 2, INPUT);
+    pinMode( 3, INPUT);
+    pinMode( 4, INPUT);
+    pinMode(20, INPUT); /* VSYNC, 20 is unused as RX, because printer does not send */ 
+    pinMode( 5, INPUT); /* PCLK */
  
     ledc_timer_config_t ledc_timer = {
         .speed_mode = LEDC_LOW_SPEED_MODE,

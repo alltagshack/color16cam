@@ -5,8 +5,10 @@ extern "C" {
     void app_main();
 }
 
-#define PICTURE_BUTTON     GPIO_NUM_7
-#define PICTURE_BUTTON2    GPIO_NUM_10
+#define PICTURE_BUTTON      7
+
+// unused
+#define PICTURE_BUTTON2    10
 
 #define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 
@@ -143,13 +145,13 @@ void getPicture ()
         {
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte   
             cam.readPixelByte(gray);
-            img[y*160 + x] = formatPixelByteFirst(gray);
+            img[(119-y)*height + x] = formatPixelByteFirst(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte
             cam.readPixelByte(gray);
-            img[y*160 + x] = formatPixelByteSecond(gray);
+            img[(119-y)*height + x] = formatPixelByteSecond(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
@@ -182,7 +184,6 @@ void app_main (void)
     cam.init();
 
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
-    pinMode(PICTURE_BUTTON2, INPUT_PULLUP);
 
     Serial.begin(9600);
 
@@ -190,7 +191,7 @@ void app_main (void)
     {
         getPicture();
 
-        if (gpio_get_level(PICTURE_BUTTON) == 0)
+        if (digitalRead(PICTURE_BUTTON) == LOW)
         {
             initPrinter();
             Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
