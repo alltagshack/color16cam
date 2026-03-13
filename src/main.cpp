@@ -36,7 +36,7 @@
 #include <Adafruit_GFX.h>
 #include "Adafruit_SSD1331.h"
 
-#define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
+#define CLAMP(v, lo, hi)    (uint8_t)((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 
 Adafruit_SSD1331 display = Adafruit_SSD1331(PIN_CS, PIN_DC, PIN_RST);
 
@@ -47,21 +47,6 @@ uint8_t img[width * height];
 #define NUM_LEDS 1
 #define DATA_PIN 48
 CRGB leds[NUM_LEDS];
-
-void printer_init() {
-  // reset
-  Serial.write("\x1B\x40", 2);
-  // linefeed to 0
-  Serial.write("\x1B\x33\x00", 3);
-  // Codepage 858
-  Serial.write("\x1B\x74\x13", 3);
-  // font B
-  Serial.write("\x1B\x4D\x01", 3);
-  // font CPI mode
-  Serial.write("\x1B\xC1\x01", 3);
-  // rotate text 180
-  Serial.write("\x1B\x7B\x01", 3);
-}
 
 static inline uint8_t rgb565_to_gray(uint16_t *rgb565)
 {
@@ -111,7 +96,7 @@ void stream_oled()
     {
         for(int x=0; x<240; ++x)
         {
-            // rotated clockwise 90 deg and mirrored
+            // rotated clockwise 90 deg
             //img[x*width +y] = rgb565_to_gray(data);
 
             // rotated 180 deg
@@ -120,8 +105,8 @@ void stream_oled()
             img[(239-y)*width +(239-x)] = rgb565_to_gray(data);
 
             // this shrinks it down to 96x64 pixel
-            if (y%4 == 0 || y<3 || y>237) {
-                if (x%4 == 0 || x<3 || x>237) {
+            if (y%4 == 0 || y==2 || y==6 || y>237) {
+                if (x%4 == 0 || x==2 || x==6 || x>237) {
                     display.writeData(*data);
                     display.writeData((*data)>>8);
                 }
@@ -154,27 +139,27 @@ void dither_atkinson ()
 
             // y, x+1
             if (x + 1 < width)
-                img[i + 1] = (uint8_t)CLAMP(img[i + 1] + diff, 0, 255);
+                img[i + 1] = CLAMP(img[i + 1] + diff, 0, 255);
 
             // y, x+2
             if (x + 2 < width)
-                img[i + 2] = (uint8_t)CLAMP(img[i + 2] + diff, 0, 255);
+                img[i + 2] = CLAMP(img[i + 2] + diff, 0, 255);
 
             // y+1, x-1
             if (y + 1 < height && x - 1 >= 0)
-                img[i + width - 1] = (uint8_t)CLAMP(img[i + width - 1] + diff, 0, 255);
+                img[i + width - 1] = CLAMP(img[i + width - 1] + diff, 0, 255);
 
             // y+1, x
             if (y + 1 < height)
-                img[i + width] = (uint8_t)CLAMP(img[i + width] + diff, 0, 255);
+                img[i + width] = CLAMP(img[i + width] + diff, 0, 255);
 
             // y+1, x+1
             if (y + 1 < height && x + 1 < width)
-                img[i + width + 1] = (uint8_t)CLAMP(img[i + width + 1] + diff, 0, 255);
+                img[i + width + 1] = CLAMP(img[i + width + 1] + diff, 0, 255);
 
             // y+2, x
             if (y + 2 < height)
-                img[i + 2 * width] = (uint8_t)CLAMP(img[i + 2 * width] + diff, 0, 255);
+                img[i + 2 * width] = CLAMP(img[i + 2 * width] + diff, 0, 255);
         }
     }
 }
@@ -185,20 +170,25 @@ void print_raster ()
     uint16_t lines = height / 24;
     uint8_t nL = width & 0xFF;
     uint8_t nH = (width >> 8) & 0xFF;
-    
+    uint8_t hdr[5] = { 0x1B, 0x2A, 0x21, nL, nH};
+
+    // reset
+    Serial.write("\x1B\x40", 2);
+    // linefeed to 0
+    Serial.write("\x1B\x33\x00", 3);
+
     for (uint16_t line = 0; line < lines; ++line)
     {
-        Serial.write("\x1B\x2A\x21", 3);
-        Serial.write(nL);
-        Serial.write(nH);
+        Serial.write(hdr, sizeof(hdr));
 
         for (uint16_t x = 0; x < width; x+=3)
         {
             for (int i = 0; i < 3; ++i)
             {
+                uint8_t byt[3];
                 for (int b = 0; b < 3; ++b)
                 {
-                    uint8_t byt = 0;
+                    byt[b] = 0;
                     for (int y = 0; y < 8; ++y)
                     {
                         int posY = line * 24 + y + b*8;
@@ -206,17 +196,17 @@ void print_raster ()
                         if ((x+i) < width) {
                             uint8_t pixel = img[posY * width + x + i];
                             if (pixel < 128) {
-                                byt |= (1 << (7 - y));
+                                byt[b] |= (1 << (7 - y));
                             }
                         }
                     }
-                    Serial.write(byt);
                 }
+                Serial.write(byt, 3);
             }
             leds[0] = CRGB(x/2, x/48 * line, 0);
             FastLED.show();
         }        
-        Serial.write(10);
+        Serial.write("\x0A", 1);
     }
 }
 
@@ -264,30 +254,28 @@ void setup (void)
     if (s->id.PID == OV3660_PID)
     {
         s->set_vflip(s, 1);
-        s->set_brightness(s, 2);
-        s->set_saturation(s, 4);
+        s->set_brightness(s, 5);
+        s->set_contrast(s, 45);
     }
 }
 
 void loop()
 {
-  if (digitalRead(PICTURE_BUTTON) == LOW) {
-    leds[0] = CRGB::White;
-    FastLED.show();
-    stream_oled();
-    leds[0] = CRGB::Black;
-    FastLED.show();
+    if (digitalRead(PICTURE_BUTTON) == LOW) {
+        leds[0] = CRGB::White;
+        FastLED.show();
+        stream_oled();
+        leds[0] = CRGB::Black;
+        FastLED.show();
 
-    printer_init();
-    Serial.println("    Das wird teuer f\x81r Sie.");
-    blow_up();
-    dither_atkinson();
-    print_raster();
+        blow_up();
+        dither_atkinson();
+        print_raster();
 
-    Serial.write("\n\n\n\n", 4);
-    leds[0] = CRGB::Black;
-    FastLED.show();
-} else {
-    stream_oled();
-  }
+        Serial.write("\n\n\n\n", 4);
+        leds[0] = CRGB::Black;
+        FastLED.show();
+    } else {
+        stream_oled();
+    }
 }
