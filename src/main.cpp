@@ -12,11 +12,25 @@ extern "C" {
 
 uint8_t gray;
 
-const uint16_t width = 320;
-const uint16_t height = 240;
+const uint16_t width = 360;
+const uint16_t height = 480;
 uint8_t img[width * height];
 
 Camera cam(Camera::RESOLUTION_QQVGA_160x120, 2);
+
+void blow_up()
+{
+    int sx,sy;
+    for(int y=(width-1); y>=0; --y)
+    {
+        sy = (float)y * 0.3333;
+        for(int x=0; x<height; ++x)
+        {
+            sx = (float)x * 0.3333;
+            img[y*height + x] = img[sy*height + sx];
+        }
+    }
+}
 
 uint8_t formatPixelByteFirst(uint8_t pixelByte)
 {
@@ -37,11 +51,11 @@ uint8_t formatPixelByteSecond(uint8_t pixelByte)
 
 void ditherAtkinson ()
 {
-    for (int y = 0; y < height; y++)
+    for (int y = 0; y < width; y++)
     {
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < height; x++)
         {
-            int i = y * width + x;
+            int i = y * height + x;
             uint8_t old = img[i];
             uint8_t act = (old < 128) ? 0 : 255;
             img[i] = act;
@@ -50,28 +64,28 @@ void ditherAtkinson ()
             int diff = err / 8;
 
             // y, x+1
-            if (x + 1 < width)
+            if (x + 1 < height)
                 img[i + 1] = (uint8_t)CLAMP(img[i + 1] + diff, 0, 255);
 
             // y, x+2
-            if (x + 2 < width)
+            if (x + 2 < height)
                 img[i + 2] = (uint8_t)CLAMP(img[i + 2] + diff, 0, 255);
 
             // y+1, x-1
-            if (y + 1 < height && x - 1 >= 0)
-                img[i + width - 1] = (uint8_t)CLAMP(img[i + width - 1] + diff, 0, 255);
+            if (y + 1 < width && x - 1 >= 0)
+                img[i + height - 1] = (uint8_t)CLAMP(img[i + height - 1] + diff, 0, 255);
 
             // y+1, x
-            if (y + 1 < height)
-                img[i + width] = (uint8_t)CLAMP(img[i + width] + diff, 0, 255);
+            if (y + 1 < width)
+                img[i + height] = (uint8_t)CLAMP(img[i + height] + diff, 0, 255);
 
             // y+1, x+1
-            if (y + 1 < height && x + 1 < width)
-                img[i + width + 1] = (uint8_t)CLAMP(img[i + width + 1] + diff, 0, 255);
+            if (y + 1 < width && x + 1 < height)
+                img[i + height + 1] = (uint8_t)CLAMP(img[i + height + 1] + diff, 0, 255);
 
             // y+2, x
-            if (y + 2 < height)
-                img[i + 2 * width] = (uint8_t)CLAMP(img[i + 2 * width] + diff, 0, 255);
+            if (y + 2 < width)
+                img[i + 2 * height] = (uint8_t)CLAMP(img[i + 2 * height] + diff, 0, 255);
         }
     }
 }
@@ -87,7 +101,7 @@ void printRaster ()
     {
         Serial.write(hdr, sizeof(hdr));
 
-        for (int x = 0; x < width; x+=3)
+        for (int y = 0; y < width; y+=3)
         {
             for (int i = 0; i < 3; ++i)
             {
@@ -95,14 +109,14 @@ void printRaster ()
                 for (int b = 0; b < 3; ++b)
                 {
                     byt[b] = 0;
-                    for (int y = 0; y < 8; ++y)
+                    for (int x = 0; x < 8; ++x)
                     {
-                        int posY = line * 24 + y + b*8;
-                        if (posY >= height) continue;
-                        if ((x+i) < width) {
-                            uint8_t pixel = img[posY * width + x + i];
+                        int posX = line * 24 + x + b*8;
+                        if (posX >= height) continue;
+                        if ((y+i) < width) {
+                            uint8_t pixel = img[(y + i)*height + posX];
                             if (pixel < 128) {
-                                byt[b] |= (1 << (7 - y));
+                                byt[b] |= (1 << (7 - x));
                             }
                         }
                     }
@@ -121,28 +135,21 @@ void getPicture ()
 
     cam.ignoreVerticalPadding();
 
-    for (uint16_t y = 0; y < height/2; y++) {
+    for (uint16_t y = 0; y < 120; ++y) {
         cam.ignoreHorizontalPaddingLeft();
 
         uint16_t x = 0;
-        while ( x < width/2)
+        while (x < 160)
         {
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte   
             cam.readPixelByte(gray);
-            img[2*y*width + 2*x] = formatPixelByteFirst(gray);
-            img[2*y*width + 2*x+1]     = img[2*y*width + 2*x];
-            img[(2*y+1)*width + 2*x+1] = img[2*y*width + 2*x];
-            img[(2*y+1)*width + 2*x]   = img[2*y*width + 2*x];
+            img[y*160 + x] = formatPixelByteFirst(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte
             cam.readPixelByte(gray);
-
-            img[2*y*width + 2*x] = formatPixelByteSecond(gray);
-            img[2*y*width + 2*x+1]     = img[2*y*width + 2*x];
-            img[(2*y+1)*width + 2*x+1] = img[2*y*width + 2*x];
-            img[(2*y+1)*width + 2*x]   = img[2*y*width + 2*x];
+            img[y*160 + x] = formatPixelByteSecond(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
@@ -182,11 +189,12 @@ void app_main (void)
     for(;;)
     {
         getPicture();
-        
+
         if (gpio_get_level(PICTURE_BUTTON) == 0)
         {
             initPrinter();
             Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
+            blow_up();
             ditherAtkinson();
             printRaster();
             Serial.write("\n\n\n\n", 4);
