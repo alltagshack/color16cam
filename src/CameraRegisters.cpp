@@ -1,44 +1,20 @@
-#include <cstdint>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/i2c.h"
-
+#include <Wire.h>
+#include <Arduino.h>
 #include "CameraRegisters.hpp"
 
-#define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_SDA_IO 8
-#define I2C_MASTER_SCL_IO 9
-#define I2C_MASTER_FREQ_HZ 100000
-#define I2C_MASTER_TX_BUF_DISABLE 0
-#define I2C_MASTER_RX_BUF_DISABLE 0
-static const TickType_t I2C_TIMEOUT = pdMS_TO_TICKS(1000);
 
 CameraRegisters::CameraRegisters (const uint8_t i2cAddress) : i2cAddress(i2cAddress) {}
 
 void CameraRegisters::init ()
 {
-    i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = I2C_MASTER_SDA_IO;
-    conf.scl_io_num = I2C_MASTER_SCL_IO;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    
-    i2c_param_config(I2C_MASTER_NUM, &conf);
-    i2c_driver_install(
-        I2C_MASTER_NUM, conf.mode,
-        I2C_MASTER_RX_BUF_DISABLE,
-        I2C_MASTER_TX_BUF_DISABLE,
-        0
-    );
+    Wire.begin();
 }
 
 bool CameraRegisters::resetSettings()
 {
-  bool isSuccessful = setRegister(REG_COM7, COM7_RESET);
-  vTaskDelay(pdMS_TO_TICKS(500));
-  return isSuccessful;
+    bool isSuccessful = setRegister(REG_COM7, COM7_RESET);
+    delay(500);
+    return isSuccessful;
 }
 
 void CameraRegisters::setRegisters (const RegisterData *programMemPointer)
@@ -59,44 +35,19 @@ void CameraRegisters::setRegisters (const RegisterData *programMemPointer)
 
 bool CameraRegisters::setRegister (uint8_t addr, uint8_t val)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    esp_err_t ret;
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, addr, true);
-    i2c_master_write_byte(cmd, val, true);
-    i2c_master_stop(cmd);
-
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT);
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK) {
-        return false;
-    }
-    return true;
+    Wire.beginTransmission(i2cAddress);
+    Wire.write(addr);
+    Wire.write(val);
+    return Wire.endTransmission() == 0;
 }
 
 uint8_t CameraRegisters::readRegister (uint8_t addr) {
-    uint8_t data = 0;
-    esp_err_t ret;
+    Wire.beginTransmission(i2cAddress);
+    Wire.write(addr);
+    Wire.endTransmission();
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, addr, true);
-    i2c_master_start(cmd); // repeated start
-    i2c_master_write_byte(cmd, (i2cAddress << 1) | I2C_MASTER_READ, true);
-    i2c_master_read_byte(cmd, &data, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT);
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK) {
-        return 0;
-    }
-    return data;
+    Wire.requestFrom(i2cAddress, (uint8_t)1);
+    return Wire.read();
 }
 
 void CameraRegisters::setRegisterBitsOR (uint8_t addr, uint8_t bits) {

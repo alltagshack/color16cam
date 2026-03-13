@@ -1,5 +1,4 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <Arduino.h>
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 
@@ -10,13 +9,14 @@
 bool Camera::init() {
     registers.init();
 
-    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_NUM_1, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_NUM_3, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_INPUT); /* VSYNC */ 
-    gpio_set_direction(GPIO_NUM_5, GPIO_MODE_INPUT);  /* PCLK */
-
+    pinMode( 0, INPUT);
+    pinMode( 1, INPUT);
+    pinMode( 2, INPUT);
+    pinMode( 3, INPUT);
+    pinMode( 4, INPUT);
+    pinMode(20, INPUT); /* VSYNC, 20 is unused as RX, because printer does not send */ 
+    pinMode( 5, INPUT); /* PCLK */
+ 
     ledc_timer_config_t ledc_timer = {
         .speed_mode = LEDC_LOW_SPEED_MODE,
         .duty_resolution = LEDC_TIMER_1_BIT,
@@ -32,11 +32,13 @@ bool Camera::init() {
         .channel = LEDC_CHANNEL_0,
         .intr_type = LEDC_INTR_FADE_END,
         .timer_sel = LEDC_TIMER_0,
-        .duty = 1
+        .duty = 1,
+        .hpoint = 0,
+        .flags = { 0 }
     };
     ledc_channel_config(&ledc_channel);
 
-    vTaskDelay(pdMS_TO_TICKS(10));
+    delay(10);
     return setUpCamera();
 }
 

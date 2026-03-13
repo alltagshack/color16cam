@@ -1,8 +1,10 @@
 #ifndef _CAMERA_HPP_
 #define _CAMERA_HPP_ 1
 
-#include "soc/gpio_reg.h"
+#include <Arduino.h>
 #include "CameraRegisters.hpp"
+
+#define _IN_REG  (*((volatile uint32_t *)0x6000403C))
 
 class Camera {
 
@@ -58,37 +60,37 @@ protected:
 };
 
 void Camera::waitForVsync() {
-  while(!(GPIO_IN_REG & (1<<4))) ;
+    while(! (_IN_REG & (1<<20)) ) ;
 }
 
 void Camera::waitForPixelClockRisingEdge() {
-  while((GPIO_IN_REG & (1<<5))) ;
-  while(!(GPIO_IN_REG & (1<<5))) ;
+    while( (_IN_REG & (1<<5)) ) ;
+    while(!(_IN_REG & (1<<5))) ;
 }
 
 // One byte at the beginning
 void Camera::ignoreHorizontalPaddingLeft() {
-  waitForPixelClockRisingEdge();
+    waitForPixelClockRisingEdge();
 }
 
 // Three bytes at the end
 void Camera::ignoreHorizontalPaddingRight() {
-  volatile uint16_t pixelTime = 0;
+    volatile uint16_t pixelTime = 0;
 
-  waitForPixelClockRisingEdge();
-  waitForPixelClockRisingEdge();
+    waitForPixelClockRisingEdge();
+    waitForPixelClockRisingEdge();
 
-  // After the last pixel byte of an image line there is a very small pixel clock pulse.
-  // To avoid accidentally counting this small pulse we measure the length of the
-  // last pulse and then wait the same time to add a byte wide delay at the
-  // end of the line.
-  while((GPIO_IN_REG & (1<<5))) pixelTime++;
-  while(!(GPIO_IN_REG & (1<<5))) pixelTime++;
-  while(pixelTime) pixelTime--;
+    // After the last pixel byte of an image line there is a very small pixel clock pulse.
+    // To avoid accidentally counting this small pulse we measure the length of the
+    // last pulse and then wait the same time to add a byte wide delay at the
+    // end of the line.
+    while((_IN_REG & (1<<5))) pixelTime++;
+    while(!(_IN_REG & (1<<5))) pixelTime++;
+    while(pixelTime) pixelTime--;
 }
 
 void Camera::readPixelByte(uint8_t & byt) {
-  byt = (uint8_t)((GPIO_IN_REG & 0x0F)<<4);
+    byt = (uint8_t) ( (_IN_REG & 0x1F) << 3 );
 }
 
 
