@@ -18,7 +18,6 @@ const uint16_t width = 360;
 const uint16_t height = 480;
 uint8_t img[width * height];
 
-//Camera cam(Camera::RESOLUTION_QVGA_160x120, 2);
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
 
 void blow_up()
@@ -98,7 +97,7 @@ void printRaster ()
     int lines = height / 24;
     uint8_t nL = width & 0xFF;
     uint8_t nH = (width >> 8) & 0xFF;
-    uint8_t hdr[5] = { 0x1B, 0x2A, 0x21, nL, nH};
+    uint8_t hdr[5] = {0x1B, 0x2A, 0x21, nL, nH};
 
     for (int line = 0; line < lines; ++line)
     {
@@ -108,10 +107,9 @@ void printRaster ()
         {
             for (int i = 0; i < 3; ++i)
             {
-                uint8_t byt[3];
                 for (int b = 0; b < 3; ++b)
                 {
-                    byt[b] = 0;
+                    uint8_t byt = 0;
                     for (int x = 0; x < 8; ++x)
                     {
                         int posX = line * 24 + x + b*8;
@@ -119,14 +117,14 @@ void printRaster ()
                         if ((y+i) < width) {
                             uint8_t pixel = img[(y + i)*height + posX];
                             if (pixel < 128) {
-                                byt[b] |= (1 << (7 - x));
+                                byt |= (1 << (7 - x));
                             }
                         }
                     }
+                    Serial.write(byt);
                 }
-                Serial.write(byt, 3);
             }
-        }        
+        }
         Serial.write("\x0A", 1);
     }
 }
@@ -162,12 +160,10 @@ void getPicture ()
     interrupts();
 }
 
-void initPrinter ()
+void printHint ()
 {
     // reset
     Serial.write("\x1B\x40", 2);
-    // linefeed to 0
-    Serial.write("\x1B\x33\x00", 3);
     // Codepage 858
     Serial.write("\x1B\x74\x13", 3);
     // font B
@@ -176,6 +172,9 @@ void initPrinter ()
     Serial.write("\x1B\xC1\x01", 3);
     // rotate text 180
     Serial.write("\x1B\x7B\x01", 3);
+    // linefeed 0
+    Serial.write("\x1B\x33\x00", 3);
+    Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -195,8 +194,7 @@ void app_main (void)
 
         if (digitalRead(PICTURE_BUTTON) == LOW)
         {
-            initPrinter();
-            Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
+            printHint();
             blow_up();
             ditherAtkinson();
             printRaster();
