@@ -52,6 +52,9 @@ public:
     inline void ignoreHorizontalPaddingRight(void) __attribute__((always_inline));
     inline void readPixelByte(uint8_t & byte) __attribute__((always_inline));
 
+    void setContrast(uint8_t contrast);
+    void setBrightness(uint8_t brightness);
+
     virtual void ignoreVerticalPadding();
 
 protected:

@@ -80,3 +80,13 @@ void Camera::ignoreVerticalPadding()
         ignoreHorizontalPaddingRight();
     }
 }
+
+void Camera::setContrast(uint8_t contrast) {
+  // default 0x40
+  registers.setRegister(REG_CONTRAS, contrast);
+}
+
+
+void Camera::setBrightness(uint8_t brightness) {
+  registers.setRegister(REG_BRIGHT, brightness);
+}

@@ -183,9 +183,10 @@ void initPrinter ()
 void app_main (void)
 {
     cam.init();
+    cam.setBrightness(62);
+    cam.setContrast(70);
 
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
-
     Serial.begin(9600);
 
     for(;;)

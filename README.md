@@ -28,3 +28,7 @@ The original name "16cam" based on a 4bit gray value for each pixel. Actually 5b
 - GPIO6 is XCLK
 - GPIO7 is the picture button
 - GPIO20 is VSYNC (UART RX is unused)
+
+## Codebase
+
+The CAM code based on [LiveOV7670 for Arduino Uno](https://github.com/indrekluuk/LiveOV7670).
