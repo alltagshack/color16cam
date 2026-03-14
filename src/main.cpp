@@ -18,17 +18,18 @@ const uint16_t width = 360;
 const uint16_t height = 480;
 uint8_t img[width * height];
 
-Camera cam(Camera::RESOLUTION_QQVGA_160x120, 2);
+//Camera cam(Camera::RESOLUTION_QVGA_160x120, 2);
+Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
 
 void blow_up()
 {
     int sx,sy;
     for(int y=(width-1); y>=0; --y)
     {
-        sy = (float)y * 0.3333;
-        for(int x=0; x<height; ++x)
+        sy = (float)y * 0.6667;
+        for(int x=(height-1); x>=0; --x)
         {
-            sx = (float)x * 0.3333;
+            sx = (float)x * 0.6667;
             img[y*height + x] = img[sy*height + sx];
         }
     }
@@ -137,21 +138,21 @@ void getPicture ()
 
     cam.ignoreVerticalPadding();
 
-    for (uint16_t y = 0; y < 120; ++y) {
+    for (uint16_t y = 0; y < 240; ++y) {
         cam.ignoreHorizontalPaddingLeft();
 
         uint16_t x = 0;
-        while (x < 160)
+        while (x < 320)
         {
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte   
             cam.readPixelByte(gray);
-            img[(119-y)*height + x] = formatPixelByteFirst(gray);
+            img[(239-y)*height + x] = formatPixelByteFirst(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
             cam.waitForPixelClockRisingEdge(); // YUV422 grayscale byte
             cam.readPixelByte(gray);
-            img[(119-y)*height + x] = formatPixelByteSecond(gray);
+            img[(239-y)*height + x] = formatPixelByteSecond(gray);
 
             cam.waitForPixelClockRisingEdge(); // YUV422 color byte. Ignore.
             x++;
