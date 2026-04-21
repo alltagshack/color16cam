@@ -6,6 +6,7 @@
 // TX <- UART RX            44 (unused)
 
 #define PICTURE_BUTTON      42
+#define TIP110_12VLEDS       1
 
 // OLED
 #define PIN_RST             41
@@ -195,8 +196,17 @@ void print_img ()
 
     // reset
     Serial.write("\x1B\x40", 2);
-    // linefeed to 0
+    // Codepage 858
+    Serial.write("\x1B\x74\x13", 3);
+    // font B
+    Serial.write("\x1B\x4D\x01", 3);
+    // font CPI mode
+    Serial.write("\x1B\xC1\x01", 3);
+    // rotate text 180
+    Serial.write("\x1B\x7B\x01", 3);
+    // linefeed 0
     Serial.write("\x1B\x33\x00", 3);
+    Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
 
     for (uint16_t line = 0; line < lines; ++line)
     {
@@ -237,6 +247,7 @@ void print_img ()
 void setup (void)
 {
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
+    pinMode(TIP110_12VLEDS, OUTPUT);
     FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LEDS);
 
     Serial.begin(9600);
@@ -290,12 +301,16 @@ void loop()
 
         leds[0] = CRGB::White;
         FastLED.show();
+        digitalWrite(TIP110_12VLEDS, HIGH);
+        delay(50);
+        leds[0] = CRGB::Black;
+        FastLED.show();
+        digitalWrite(TIP110_12VLEDS, LOW);
+
         stream_oled(true);
 
         blow_up();
         dither_atkinson();
-        leds[0] = CRGB::Black;
-        FastLED.show();
 
         while(digitalRead(PICTURE_BUTTON) == LOW) {
             stream_oled(false);
@@ -303,10 +318,10 @@ void loop()
             dither_atkinson();
             dither_preview();
             ticker++;
-            delay(100);
+            delay(50);
         }
 
-        if (ticker < 10) print_img();
+        if (ticker < 8) print_img();
         
     } else {
         stream_oled(true);

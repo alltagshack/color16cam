@@ -16,3 +16,5 @@
 - printing is not mirrored or rotated
 - OV3360 Cam with ribbon cable to bottom
 - long press picture button: a zoomed dither preview on the display
+- using a TIP110 + 120 Ohm resistor to Pin 01, DC Step Up to 12V a 12V
+  LEDS wire used as flash-light
