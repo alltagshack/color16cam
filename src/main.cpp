@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <U8g2lib.h>
 #include "Camera.hpp"
 
 extern "C" {
@@ -20,6 +21,7 @@ uint8_t img[width * height];
 
 //Camera cam(Camera::RESOLUTION_QVGA_160x120, 2);
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 void blow_up()
 {
@@ -178,11 +180,27 @@ void initPrinter ()
     Serial.write("\x1B\x7B\x01", 3);
 }
 
+void preview ()
+{
+    uint8_t c;
+    for(int y=0; y < 240; y+=3)
+    {
+        for(int x=0; x < 320; x+=3)
+        {
+            c = img[(239-y)*height + x];
+            u8g2.setColorIndex(c > 127? 1 : 0);
+            u8g2.drawPixel(x/3, y/3);
+        }
+    }
+    u8g2.sendBuffer();
+}
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 void app_main (void)
 {
     cam.init();
+    u8g2.begin();
 
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
 
@@ -191,6 +209,7 @@ void app_main (void)
     for(;;)
     {
         getPicture();
+        preview();
 
         if (digitalRead(PICTURE_BUTTON) == LOW)
         {
