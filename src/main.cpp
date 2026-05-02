@@ -8,9 +8,6 @@ extern "C" {
 
 #define PICTURE_BUTTON      7
 
-// unused
-#define PICTURE_BUTTON2    10
-
 #define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 
 uint8_t gray;
@@ -20,7 +17,7 @@ const uint16_t height = 480;
 uint8_t img[width * height];
 
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SSD1306_64X32_1F_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 static const uint8_t bayer[4][4] = {
     { 0,  8,  2, 10},
@@ -195,14 +192,14 @@ void printHint ()
 void preview ()
 {
     uint8_t c,t;
-    for(int y=0; y < 240; y+=3)
+    for(int y=0; y < 240; y+=6)
     {
-        for(int x=0; x < 360; x+=3)
+        for(int x=0; x < 360; x+=6)
         {
             c = img[(239-y)*height + x];
-            t = bayerThreshold(x/3, y/3);
+            t = bayerThreshold(x/6, y/6);
             u8g2.setColorIndex(c < t? 0 : 1);
-            u8g2.drawPixel(x/3, y/3);
+            u8g2.drawPixel(x/6, y/6);
         }
     }
     u8g2.sendBuffer();
@@ -213,7 +210,7 @@ void preview ()
 void app_main (void)
 {
     pinMode(PICTURE_BUTTON, INPUT_PULLUP);
-    
+
     cam.init();
     cam.setBrightness(62);
     cam.setContrast(70);
