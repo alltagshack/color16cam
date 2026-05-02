@@ -8,7 +8,7 @@ The original name "16cam" based on a 4bit gray value for each pixel. Actually 5b
 - 320x240 is scaled to 480x360 for more raster points
 - 24bit high res ESC/POS Printing (58mm) via TTL UART
 - 32 gray values
-- I2C oled SSD1306 preview display
+- I2C oled SSD1306 preview display (128x64)
 
 ![in action](screenshot.jpg)
 

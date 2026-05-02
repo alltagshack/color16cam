@@ -23,6 +23,19 @@ uint8_t img[width * height];
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
+static const uint8_t bayer[4][4] = {
+    { 0,  8,  2, 10},
+    {12,  4, 14,  6},
+    { 3, 11,  1,  9},
+    {15,  7, 13,  5}
+};
+
+uint8_t bayerThreshold (uint16_t x, uint16_t y)
+{
+    // (value + 0.5) * 255 / 16 -> round‑to‑nearest
+    return (bayer[y & 3][x & 3] * 255 + 127) / 16;
+}
+
 void blow_up()
 {
     int sx,sy;
@@ -56,9 +69,9 @@ uint8_t formatPixelByteSecond(uint8_t pixelByte)
 
 void ditherAtkinson ()
 {
-    for (int y = 0; y < width; y++)
+    for (int y = 0; y < width; ++y)
     {
-        for (int x = 0; x < height; x++)
+        for (int x = 0; x < height; ++x)
         {
             int i = y * height + x;
             uint8_t old = img[i];
@@ -182,13 +195,14 @@ void initPrinter ()
 
 void preview ()
 {
-    uint8_t c;
+    uint8_t c,t;
     for(int y=0; y < 240; y+=3)
     {
-        for(int x=0; x < 320; x+=3)
+        for(int x=0; x < 360; x+=3)
         {
             c = img[(239-y)*height + x];
-            u8g2.setColorIndex(c > 127? 1 : 0);
+            t = bayerThreshold(x/3, y/3);
+            u8g2.setColorIndex(c < t? 0 : 1);
             u8g2.drawPixel(x/3, y/3);
         }
     }
