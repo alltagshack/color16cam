@@ -17,7 +17,8 @@ const uint16_t height = 480;
 uint8_t img[width * height];
 
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
-U8G2_SSD1306_64X32_1F_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+//U8G2_SSD1306_64X32_1F_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 static const uint8_t bayer[4][4] = {
     { 0,  8,  2, 10},
@@ -186,10 +187,10 @@ void printHint ()
     Serial.write("\x1B\x7B\x01", 3);
     // linefeed 0
     Serial.write("\x1B\x33\x00", 3);
-    Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
+    Serial.write("        Fest ohne Grenzen, 5.9.2026\n", 36);
 }
 
-void preview ()
+void preview64X32 ()
 {
     uint8_t c,t;
     for(int y=0; y < 240; y+=6)
@@ -200,6 +201,22 @@ void preview ()
             t = bayerThreshold(x/6, y/6);
             u8g2.setColorIndex(c < t? 0 : 1);
             u8g2.drawPixel(x/6, y/6);
+        }
+    }
+    u8g2.sendBuffer();
+}
+
+void preview ()
+{
+    uint8_t c,t;
+    for(int y=0; y < 240; y+=3)
+    {
+        for(int x=0; x < 360; x+=3)
+        {
+            c = img[(239-y)*height + x];
+            t = bayerThreshold(x/3, y/3);
+            u8g2.setColorIndex(c < t? 0 : 1);
+            u8g2.drawPixel(x/3, y/3);
         }
     }
     u8g2.sendBuffer();
@@ -229,6 +246,14 @@ void app_main (void)
             blow_up();
             ditherAtkinson();
             printRaster();
+            Serial.write("   Krefeld\n", 11);
+            /* font a */ 
+            Serial.write("\x1B\x4D\x00", 3);
+            /* 2x height 1x width */
+            Serial.write("\x1D\x21\x01", 3);
+            /* bold */
+            Serial.write("\x1B\x45\x01", 3);
+            Serial.write("  Die PARTEI\n", 13);
             Serial.write("\n\n\n\n", 4);
         }
         delay(250);
