@@ -187,7 +187,7 @@ void printHint ()
     Serial.write("\x1B\x7B\x01", 3);
     // linefeed 0
     Serial.write("\x1B\x33\x00", 3);
-    Serial.write("        Fest ohne Grenzen, 5.9.2026\n", 36);
+    Serial.write("              26. September 2026\n", 33);
 }
 
 void preview64X32 ()
@@ -246,14 +246,14 @@ void app_main (void)
             blow_up();
             ditherAtkinson();
             printRaster();
-            Serial.write("   Krefeld\n", 11);
+            Serial.write("                    Krefeld\n", 28);
             /* font a */ 
             Serial.write("\x1B\x4D\x00", 3);
             /* 2x height 1x width */
             Serial.write("\x1D\x21\x01", 3);
             /* bold */
             Serial.write("\x1B\x45\x01", 3);
-            Serial.write("  Die PARTEI\n", 13);
+            Serial.write("       Interkulturelle Woche\n", 29);
             Serial.write("\n\n\n\n", 4);
         }
         delay(250);
