@@ -8,7 +8,7 @@ The original name "16cam" based on a 4bit gray value for each pixel. Actually 5b
 - 320x240 is scaled to 480x360 for more raster points
 - 24bit high res ESC/POS Printing (58mm) via TTL UART
 - 32 gray values
-- I2C oled SSD1306 preview display (64x32, TOO SMALL !)
+- I2C oled SSD1306 preview display (128x64)
 
 ![breadboard](dev.jpg)
 ![in action](screenshot.jpg)
@@ -55,3 +55,7 @@ Power
 ## Codebase
 
 The CAM code based on [LiveOV7670 for Arduino Uno](https://github.com/indrekluuk/LiveOV7670).
+
+## Known Bugs
+
+After first picture the first 8 (?) lines in the display are lost. 
