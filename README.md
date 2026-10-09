@@ -37,8 +37,10 @@ The original name "16cam" based on a 4bit gray value for each pixel. Actually 5b
 
 I2C
 
-- GPIO9 to CLK (Oled and Cam)
-- GPIO8 to SDA (Oled and Cam)
+- GPIO9 to CLK (Oled, DS1307 and Cam)
+- GPIO8 to SDA (Oled, DS1307 and Cam)
+
+DS1307: Add a 3V battery to its pin and set time and date [like in this example](https://registry.platformio.org/libraries/watterott/DS1307/examples/Example/Example.ino)
 
 Power
 
@@ -47,10 +49,12 @@ Power
   - to Cam PWDN
   - to Printer GND
   - to Oled GND/VDD
+  - to DS1307 GND
 - 3.3 V 
   - to Cam VCC
   - to Cam RST
   - to Oled VCC
+  - to DS1307 VCC
 
 ## Codebase
 

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
+#include <DS1307.h>
 #include "Camera.hpp"
 
 extern "C" {
@@ -18,6 +19,7 @@ uint8_t img[width * height];
 
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+DS1307 rtc;
 
 static const uint8_t bayer[4][4] = {
     { 0,  8,  2, 10},
@@ -174,6 +176,11 @@ void getPicture ()
 
 void printHint ()
 {
+    uint8_t sec, min, hour, day, month;
+    uint16_t year;
+    //get time from RTC
+    rtc.get(&sec, &min, &hour, &day, &month, &year);
+
     // reset
     Serial.write("\x1B\x40", 2);
     // Codepage 858
@@ -187,6 +194,18 @@ void printHint ()
     // linefeed 0
     Serial.write("\x1B\x33\x00", 3);
     Serial.write("          Das wird teuer f\x81r Sie.\n", 34);
+    Serial.print("             ");
+    Serial.print(hour, DEC);
+    Serial.print(":");
+    if (min<10) Serial.print("0");
+    Serial.print(min, DEC);
+
+    Serial.print(" ");
+    Serial.print(day, DEC);
+    Serial.print(".");
+    Serial.print(month, DEC);
+    Serial.print(".");
+    Serial.println(year, DEC);
 }
 
 void preview ()
@@ -215,8 +234,10 @@ void app_main (void)
     cam.setBrightness(62);
     cam.setContrast(70);
     u8g2.begin();
+    rtc.begin();
 
     Serial.begin(9600);
+    rtc.start();
 
     for(;;)
     {
