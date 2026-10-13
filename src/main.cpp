@@ -18,7 +18,7 @@ const uint16_t height = 480;
 uint8_t img[width * height];
 
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SSD1306_64X32_1F_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 DS1307 rtc;
 
 static const uint8_t bayer[4][4] = {
@@ -208,15 +208,31 @@ void printHint ()
     Serial.println(year, DEC);
 }
 
+void preview_org ()
+{
+    uint8_t c,t;
+    for(int y=0; y < 240; y+=6)
+    {
+        for(int x=0; x < 360; x+=6)
+        {
+            c = img[(239-y)*height + x];
+            t = bayerThreshold(x/6, y/6);
+            u8g2.setColorIndex(c < t? 0 : 1);
+            u8g2.drawPixel(x/6, y/6);
+        }
+    }
+    u8g2.sendBuffer();
+}
+
 void preview ()
 {
     uint8_t c,t;
-    for(int y=0; y < 240; y+=3)
+    for(int y=0; y < 96; y+=3)
     {
-        for(int x=0; x < 360; x+=3)
+        for(int x=0; x < 192; x+=3)
         {
-            c = img[(239-y)*height + x];
-            t = bayerThreshold(x/3, y/3);
+            c = img[(239-(72+y))*height + 84 + x];
+            t = bayerThreshold(84 + x/3, 72 + y/3);
             u8g2.setColorIndex(c < t? 0 : 1);
             u8g2.drawPixel(x/3, y/3);
         }
