@@ -10,6 +10,7 @@ The original name "16cam" based on a 4bit gray value for each pixel. Actually 5b
 - 32 gray values
 - I2C oled SSD1306 preview display (64x32)
   - it grabs the middle area (192x96) of 320x240
+  - atkinson dithering, too!
 
 ![breadboard - old picture](dev.jpg)
 ![in action](screenshot.jpg)
@@ -60,7 +61,3 @@ Power
 ## Codebase
 
 The CAM code based on [LiveOV7670 for Arduino Uno](https://github.com/indrekluuk/LiveOV7670).
-
-## Known Bugs
-
-After first picture the first 8 (?) lines in the display are lost. 

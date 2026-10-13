@@ -17,22 +17,12 @@ const uint16_t width = 360;
 const uint16_t height = 480;
 uint8_t img[width * height];
 
+// for i2c display
+uint8_t ditherImg[64 * 32];
+
 Camera cam(Camera::RESOLUTION_QVGA_320x240, 8);
 U8G2_SSD1306_64X32_1F_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 DS1307 rtc;
-
-static const uint8_t bayer[4][4] = {
-    { 0,  8,  2, 10},
-    {12,  4, 14,  6},
-    { 3, 11,  1,  9},
-    {15,  7, 13,  5}
-};
-
-uint8_t bayerThreshold (uint16_t x, uint16_t y)
-{
-    // (value + 0.5) * 255 / 16 -> round‑to‑nearest
-    return (bayer[y & 3][x & 3] * 255 + 127) / 16;
-}
 
 void blow_up()
 {
@@ -65,43 +55,43 @@ uint8_t formatPixelByteSecond(uint8_t pixelByte)
     return pixelByte | 0b00000001;
 }
 
-void ditherAtkinson ()
+void ditherAtkinson (int w, int h, uint8_t * d)
 {
-    for (int y = 0; y < width; ++y)
+    for (int y = 0; y < w; ++y)
     {
-        for (int x = 0; x < height; ++x)
+        for (int x = 0; x < h; ++x)
         {
-            int i = y * height + x;
-            uint8_t old = img[i];
+            int i = y * h + x;
+            uint8_t old = d[i];
             uint8_t act = (old < 128) ? 0 : 255;
-            img[i] = act;
+            d[i] = act;
 
             int err = (int)old - (int)act;
             int diff = err / 8;
 
             // y, x+1
-            if (x + 1 < height)
-                img[i + 1] = (uint8_t)CLAMP(img[i + 1] + diff, 0, 255);
+            if (x + 1 < h)
+                d[i + 1] = (uint8_t)CLAMP(d[i + 1] + diff, 0, 255);
 
             // y, x+2
-            if (x + 2 < height)
-                img[i + 2] = (uint8_t)CLAMP(img[i + 2] + diff, 0, 255);
+            if (x + 2 < h)
+                d[i + 2] = (uint8_t)CLAMP(d[i + 2] + diff, 0, 255);
 
             // y+1, x-1
-            if (y + 1 < width && x - 1 >= 0)
-                img[i + height - 1] = (uint8_t)CLAMP(img[i + height - 1] + diff, 0, 255);
+            if (y + 1 < w && x - 1 >= 0)
+                d[i + h - 1] = (uint8_t)CLAMP(d[i + h - 1] + diff, 0, 255);
 
             // y+1, x
-            if (y + 1 < width)
-                img[i + height] = (uint8_t)CLAMP(img[i + height] + diff, 0, 255);
+            if (y + 1 < w)
+                d[i + h] = (uint8_t)CLAMP(d[i + h] + diff, 0, 255);
 
             // y+1, x+1
-            if (y + 1 < width && x + 1 < height)
-                img[i + height + 1] = (uint8_t)CLAMP(img[i + height + 1] + diff, 0, 255);
+            if (y + 1 < w && x + 1 < h)
+                d[i + h + 1] = (uint8_t)CLAMP(d[i + h + 1] + diff, 0, 255);
 
             // y+2, x
-            if (y + 2 < width)
-                img[i + 2 * height] = (uint8_t)CLAMP(img[i + 2 * height] + diff, 0, 255);
+            if (y + 2 < w)
+                d[i + 2 * h] = (uint8_t)CLAMP(d[i + 2 * h] + diff, 0, 255);
         }
     }
 }
@@ -208,33 +198,22 @@ void printHint ()
     Serial.println(year, DEC);
 }
 
-void preview_org ()
-{
-    uint8_t c,t;
-    for(int y=0; y < 240; y+=6)
-    {
-        for(int x=0; x < 360; x+=6)
-        {
-            c = img[(239-y)*height + x];
-            t = bayerThreshold(x/6, y/6);
-            u8g2.setColorIndex(c < t? 0 : 1);
-            u8g2.drawPixel(x/6, y/6);
-        }
-    }
-    u8g2.sendBuffer();
-}
-
 void preview ()
 {
-    uint8_t c,t;
     for(int y=0; y < 96; y+=3)
     {
         for(int x=0; x < 192; x+=3)
         {
-            c = img[(239-(72+y))*height + 84 + x];
-            t = bayerThreshold(84 + x/3, 72 + y/3);
-            u8g2.setColorIndex(c < t? 0 : 1);
-            u8g2.drawPixel(x/3, y/3);
+            ditherImg[(y/3)*64 + x/3] = img[(239-(72+y))*height + 84 + x];
+        }
+    }
+    ditherAtkinson(64, 32, ditherImg);
+    for(int y=0; y < 32; ++y)
+    {
+        for(int x=0; x < 64; ++x)
+        {
+            u8g2.setColorIndex(ditherImg[y*64+x]);
+            u8g2.drawPixel(x, y);
         }
     }
     u8g2.sendBuffer();
@@ -264,7 +243,7 @@ void app_main (void)
         {
             printHint();
             blow_up();
-            ditherAtkinson();
+            ditherAtkinson(width, height, img);
             printRaster();
             Serial.write("\n\n\n\n", 4);
         }
