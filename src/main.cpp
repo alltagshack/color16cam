@@ -7,6 +7,7 @@ extern "C" {
     void app_main();
 }
 
+#define SET_RTC_TIME        0
 #define PICTURE_BUTTON      7
 
 #define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
@@ -232,6 +233,11 @@ void app_main (void)
     rtc.begin();
 
     Serial.begin(9600);
+
+#if SET_RTC_TIME == 1
+    rtc.set(0,41,19, 25,10,2026);
+#endif
+
     rtc.start();
 
     for(;;)
